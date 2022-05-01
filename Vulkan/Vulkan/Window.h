@@ -3,9 +3,12 @@
 
 class Window {
 private:
-	GLFWwindow* m_window;
+	int m_width, m_height;
 
 public:
+	GLFWwindow* m_window;
+
 	Window(int width, int height, const char* name);
+
 	~Window();
 };

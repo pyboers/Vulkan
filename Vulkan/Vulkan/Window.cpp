@@ -1,6 +1,6 @@
 #include "Window.h"
 
-Window::Window(int width, int height, const char* name)
+Window::Window(int width, int height, const char* name) : m_width(width), m_height(height)
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);

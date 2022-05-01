@@ -7,7 +7,7 @@
 
 int main()
 {
-    std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
-    Window window = Window(800, 600, "Test App");
-    VulkanInstance vkInstance = VulkanInstance("Test App", 1, 0, 0, validationLayers);
+	std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+	Window window = Window(800, 600, "Test App");
+	VulkanInstance vkInstance = VulkanInstance(window, "Test App", 1, 0, 0, validationLayers);
 }

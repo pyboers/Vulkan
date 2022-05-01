@@ -27,8 +27,18 @@ void VulkanInstance::validateValidationLayerSupport(std::vector<const char*> val
 	}
 }
 
-VulkanInstance::VulkanInstance(const char* appName, uint32_t majorVersion, uint32_t minorVersion, uint32_t patchVersion, std::vector<const char*> validationLayers)
+VkSurfaceKHR VulkanInstance::createSurface()
 {
+	VkSurfaceKHR surface;
+	if (glfwCreateWindowSurface(m_instance, m_window.m_window, nullptr, &surface) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create window surface");
+	}
+	return surface;
+}
+
+VkInstance VulkanInstance::createInstance(const char* appName, uint32_t majorVersion, uint32_t minorVersion, uint32_t patchVersion, std::vector<const char*> validationLayers)
+{
+	VkInstance instance;
 	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = appName;
@@ -56,22 +66,34 @@ VulkanInstance::VulkanInstance(const char* appName, uint32_t majorVersion, uint3
 	createInfo.ppEnabledLayerNames = validationLayers.data();
 #endif
 
-	if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS) {
+	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Vulkan instance!");
 	}
 
 	uint32_t extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-	VkExtensionProperties * extensions = new VkExtensionProperties[extensionCount];
+	VkExtensionProperties* extensions = new VkExtensionProperties[extensionCount];
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions);
 
 	std::cout << "Extensions available: " << std::endl;
 	for (uint32_t i = 0; i < extensionCount; i++) {
 		std::cout << '\t' << extensions[i].extensionName << std::endl;
 	}
+
+	return instance;
+}
+
+VulkanInstance::VulkanInstance(Window& window, const char* appName, uint32_t majorVersion, uint32_t minorVersion, uint32_t patchVersion, std::vector<const char*> validationLayers) 
+	: m_window(window),
+	m_instance(createInstance(appName, majorVersion, minorVersion, patchVersion, validationLayers)),
+	m_surface(createSurface()),
+	m_device(std::make_unique<Device>(*this))
+{
+
 }
 
 VulkanInstance::~VulkanInstance()
 {
+	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	vkDestroyInstance(m_instance, nullptr);
 }
