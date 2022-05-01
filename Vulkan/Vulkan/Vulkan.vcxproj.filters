@@ -27,6 +27,9 @@
     <ClCompile Include="Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SwapChain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanInstance.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Device.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SwapChain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

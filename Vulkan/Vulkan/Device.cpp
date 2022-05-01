@@ -26,6 +26,11 @@ SwapChainSupportDetails Device::querySwapChainSupport(VkPhysicalDevice device)
     return details;
 }
 
+RenderPipeline Device::createRenderPipeline(const char* vertPath, const char* fragPath)
+{
+    return RenderPipeline(*this, vertPath, fragPath, m_swapChain->m_swapChainExtent, m_swapChain->m_swapChainImageFormat);
+}
+
 bool Device::confirmSwapChainSupport(VkPhysicalDevice device)
 {
     SwapChainSupportDetails details = querySwapChainSupport(device);
@@ -40,7 +45,7 @@ bool Device::confirmDeviceExtensionSupport(VkPhysicalDevice device)
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-    std::set<std::string> requiredExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
+    std::set<std::string> requiredExtensions(m_deviceExtensions.begin(), m_deviceExtensions.end());
 
     for (const auto& extension : availableExtensions) {
         requiredExtensions.erase(extension.extensionName);
@@ -57,20 +62,26 @@ void Device::setupQueueFamilies(VkPhysicalDevice device)
     VkQueueFamilyProperties* families = new VkQueueFamilyProperties[count];
     vkGetPhysicalDeviceQueueFamilyProperties(device, &count, families);
 
+    bool foundFamilyBoth = false; //Stop searching for graphics queue if found presenting and graphics.
     for (uint32_t i = 0; i < count; i++) {
         VkBool32 supportsPresent = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_instance.m_surface, &supportsPresent);
-        if (supportsPresent) {
+        if (supportsPresent && !foundFamilyBoth) {
             m_queueFamilies.presentFamily = i;
         }
-        if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if (families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && !foundFamilyBoth) {
             m_queueFamilies.graphicsFamily = i;
             if (supportsPresent) {
-                break; //Rather use the same queue if possible.
+                foundFamilyBoth = true;
             }
         }
+        if (families[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+            m_queueFamilies.computeFamily = i;
+        }
+
     }
-    if (!m_queueFamilies.graphicsFamily.has_value() || !m_queueFamilies.presentFamily.has_value())
+    if (!m_queueFamilies.graphicsFamily.has_value() || !m_queueFamilies.presentFamily.has_value()
+        || !m_queueFamilies.computeFamily.has_value())
     {
         throw std::runtime_error("Couldn't find required queues!");
     }
@@ -107,9 +118,44 @@ Device::Device(VulkanInstance& instance): m_instance(instance)
     }
 
     setupQueueFamilies(m_physicalDevice);
+
+    std::vector<VkDeviceQueueCreateInfo> queueInfos;
+    std::set<uint32_t> familySet = { m_queueFamilies.graphicsFamily.value(), m_queueFamilies.presentFamily.value(), m_queueFamilies.computeFamily.value()};
+
+    float queuePriority = 1.0f;
+    for (uint32_t family : familySet) {
+        VkDeviceQueueCreateInfo queueInfo{};
+        queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueInfo.queueFamilyIndex = family;
+        queueInfo.queueCount = 1;
+        queueInfo.pQueuePriorities = &queuePriority;
+        queueInfos.push_back(queueInfo);
+    }
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos = queueInfos.data();
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
+    createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
+
+
+    if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create logical device");
+    }
+
+    vkGetDeviceQueue(m_device, m_queueFamilies.graphicsFamily.value(), 0, &m_graphicsQueue);
+    vkGetDeviceQueue(m_device, m_queueFamilies.presentFamily.value(), 0, &m_presentQueue);
+    vkGetDeviceQueue(m_device, m_queueFamilies.computeFamily.value(), 0, &m_computeQueue);
+
+    m_swapChain = new SwapChain(*this);
 }
 
 Device::~Device()
 {
+    delete m_swapChain;
     vkDestroyDevice(m_device, nullptr);
 }

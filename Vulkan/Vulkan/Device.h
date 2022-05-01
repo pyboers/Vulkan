@@ -3,6 +3,8 @@
 #include <GLFW/glfw3.h>
 #include <optional>
 #include <vector>
+#include "SwapChain.h"
+#include "RenderPipeline.h"
 
 struct SwapChainSupportDetails {
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -12,6 +14,7 @@ struct SwapChainSupportDetails {
 
 struct QueueFamilies {
 	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> computeFamily;
 	std::optional<uint32_t> presentFamily;
 };
 
@@ -23,15 +26,9 @@ class VulkanInstance;
 class Device
 {
 private:
-	VulkanInstance& m_instance;
-	VkPhysicalDevice m_physicalDevice;
-	VkDevice m_device;
 
-	QueueFamilies m_queueFamilies;
-	VkQueue m_graphicsQueue;
-	VkQueue m_presentQueue;
+	const std::vector<const char*> m_deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
     bool confirmSwapChainSupport(VkPhysicalDevice device);
 
@@ -39,7 +36,22 @@ private:
 
 	void setupQueueFamilies(VkPhysicalDevice device);
 public:
+	VulkanInstance& m_instance;
+	VkPhysicalDevice m_physicalDevice;
+	VkDevice m_device;
+
+	QueueFamilies m_queueFamilies;
+	VkQueue m_graphicsQueue;
+	VkQueue m_presentQueue;
+	VkQueue m_computeQueue;
+
+	SwapChain* m_swapChain;
+
 	Device(VulkanInstance &instance);
+
+	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+
+	RenderPipeline createRenderPipeline(const char* vertPath, const char* fragPath);
 
 	~Device();
 

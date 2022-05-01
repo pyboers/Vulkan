@@ -87,13 +87,14 @@ VulkanInstance::VulkanInstance(Window& window, const char* appName, uint32_t maj
 	: m_window(window),
 	m_instance(createInstance(appName, majorVersion, minorVersion, patchVersion, validationLayers)),
 	m_surface(createSurface()),
-	m_device(std::make_unique<Device>(*this))
+	m_device(new Device(*this))
 {
 
 }
 
 VulkanInstance::~VulkanInstance()
 {
+	delete m_device; //Important this gets called before the next lines.
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	vkDestroyInstance(m_instance, nullptr);
 }

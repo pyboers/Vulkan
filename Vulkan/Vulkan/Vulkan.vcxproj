@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -145,11 +145,16 @@
   <ItemGroup>
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="RenderPipeline.cpp" />
+    <ClCompile Include="SwapChain.cpp" />
     <ClCompile Include="VulkanInstance.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Device.h" />
+    <ClInclude Include="RenderPipeline.h" />
+    <ClInclude Include="SwapChain.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="Window.h" />
     <ClInclude Include="VulkanInstance.h" />
   </ItemGroup>
