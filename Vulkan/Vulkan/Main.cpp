@@ -4,11 +4,14 @@
 #include <iostream>
 #include "VulkanInstance.h"
 #include "Window.h"
+#include "ComputePipeline.h"
 
 int main()
 {
 	std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 	Window window = Window(800, 600, "Test App");
 	VulkanInstance vkInstance = VulkanInstance(window, "Test App", 1, 0, 0, validationLayers);
-	RenderPipeline test = vkInstance.m_device->createRenderPipeline("shaders/vert.spv", "shaders/frag.spv");
+	ComputePipeline test = ComputePipeline(*vkInstance.m_device, "shaders/comp.spv");
+
+
 }
