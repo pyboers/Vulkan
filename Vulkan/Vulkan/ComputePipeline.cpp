@@ -3,79 +3,42 @@
 #include <stdexcept>
 #include "Utils.h"
 
-VkShaderModule ComputePipeline::createShaderModule(std::vector<char> shader)
+vk::ShaderModule ComputePipeline::createShaderModule(const vk::Device& device, const std::vector<char>& shader)
 {
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = shader.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(shader.data());
+    const size_t size = shader.size();
+    const uint32_t* c = reinterpret_cast<const uint32_t*>(shader.data());
+    vk::ShaderModuleCreateInfo createInfo(vk::ShaderModuleCreateFlags(), size, c);
 
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(m_device.m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create shader module!");
-    }
-
-    return shaderModule;
+    return device.createShaderModule(createInfo);
 }
 
-ComputePipeline::ComputePipeline(Device& device, const char* computePath)
-:m_device(device) {
-    std::vector<char> compute = readFile(computePath);
+vk::PipelineLayout ComputePipeline::createPipelineLayout(const vk::Device& device, const vk::DescriptorSetLayout &layouts)
+{
+    vk::PipelineLayoutCreateInfo createInfo({}, layouts);
 
-    VkShaderModule computeModule = createShaderModule(compute);
+    return device.createPipelineLayout(createInfo);
+}
 
-    VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[2] = {
-      {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, 0},
-      {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, 0}
-    };
+vk::Pipeline ComputePipeline::createPipeline(const vk::Device& device, const vk::PipelineLayout& pipelineLayout, const char* computePath)
+{
+    vk::ShaderModule shaderModule = createShaderModule(device, readFile(computePath));
+    vk::PipelineShaderStageCreateInfo shaderCreateInfo({}, vk::ShaderStageFlagBits::eCompute, shaderModule, "main");
+    vk::ComputePipelineCreateInfo createInfo({}, shaderCreateInfo, pipelineLayout);
 
-    VkDescriptorSetLayoutCreateInfo dSetLayoutInfo{};
-    dSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    dSetLayoutInfo.flags = 0;
-    dSetLayoutInfo.pNext = nullptr;
-    dSetLayoutInfo.bindingCount = 2;
-    dSetLayoutInfo.pBindings = descriptorSetLayoutBindings;
+    vk::ResultValue<vk::Pipeline> result = device.createComputePipeline(nullptr, createInfo);
+    vkDestroyShaderModule(device, shaderModule, nullptr);
+    vk::resultCheck(result.result, "Pipeline creation failed!");
 
-    if (vkCreateDescriptorSetLayout(m_device.m_device, &dSetLayoutInfo, nullptr, &m_dSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create descriptor set layout");
-    }
+    return result.value;
+}
 
-    VkPipelineLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layoutInfo.pNext = nullptr;
-    layoutInfo.flags = 0;
-    layoutInfo.setLayoutCount = 1;
-    layoutInfo.pSetLayouts = &m_dSetLayout;
-    layoutInfo.pushConstantRangeCount = 0;
-    layoutInfo.pPushConstantRanges = nullptr;
-
-    if (vkCreatePipelineLayout(m_device.m_device, &layoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create pipeline layout");
-    }
-
-    VkPipelineShaderStageCreateInfo shaderStageInfo{};
-    shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStageInfo.flags = 0;
-    shaderStageInfo.pNext = nullptr;
-    shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    shaderStageInfo.module = computeModule;
-    shaderStageInfo.pName = "main";
-    shaderStageInfo.pSpecializationInfo = nullptr;
-
-    VkComputePipelineCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    createInfo.pNext = nullptr;
-    createInfo.flags = 0;
-    createInfo.stage = shaderStageInfo;
-    createInfo.layout = m_pipelineLayout;
-    createInfo.basePipelineIndex = 0;
-    createInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-    if (vkCreateComputePipelines(m_device.m_device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create pipeline");
-    }
-
-    vkDestroyShaderModule(m_device.m_device, computeModule, nullptr);
+ComputePipeline::ComputePipeline(Device& device, const char* computePath, const vk::DescriptorSetLayout& descriptorSetLayout)
+:m_device(device),
+m_dSetLayout(descriptorSetLayout),
+m_pipelineLayout(createPipelineLayout(device.m_device, descriptorSetLayout)),
+m_pipeline(createPipeline(device.m_device, m_pipelineLayout, computePath))
+{
+  
 }
 
 ComputePipeline::~ComputePipeline()

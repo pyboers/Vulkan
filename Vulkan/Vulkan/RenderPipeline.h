@@ -2,23 +2,24 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include<vector>
+#include "vulkan/vulkan.hpp"
 
 class Device;
 
 class RenderPipeline
 {
 private:
+	static vk::ShaderModule createShaderModule(const vk::Device& device, const std::vector<char>& shader);
+	static vk::RenderPass createRenderPass(const vk::Device& device, const vk::Format colorFormat);
+	static vk::PipelineLayout createPipelineLayout(const vk::Device& device);
+	static vk::Pipeline createPipeline(const vk::Device& device, const char* vertPath, const char* fragPath, const vk::Extent2D &extents, const vk::RenderPass& renderPass, const vk::PipelineLayout& layout);
+
 	Device& m_device;
-	VkRenderPass m_renderPass;
-	VkPipelineLayout m_pipelineLayout;
-	VkPipeline m_pipeline;
-
-	VkShaderModule createShaderModule(std::vector<char> shader);
-
-	VkRenderPass createRenderPass(VkFormat colorFormat);
-
 public:
-	RenderPipeline(Device &device, const char* vertPath, const char* fragPath, VkExtent2D extents, VkFormat colorFormat);
+	vk::RenderPass m_renderPass;
+	vk::PipelineLayout m_pipelineLayout;
+	vk::Pipeline m_pipeline;
+	RenderPipeline(Device &device, const char* vertPath, const char* fragPath, const vk::Extent2D &extents, const vk::Format &colorFormat);
 
 	~RenderPipeline();
 };

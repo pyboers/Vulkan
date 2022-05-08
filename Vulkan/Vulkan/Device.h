@@ -5,11 +5,12 @@
 #include <vector>
 #include "SwapChain.h"
 #include "RenderPipeline.h"
+#include "vulkan/vulkan.hpp"
 
 struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
+	vk::SurfaceCapabilitiesKHR capabilities;
+	std::vector<vk::SurfaceFormatKHR> formats;
+	std::vector<vk::PresentModeKHR> presentModes;
 };
 
 struct QueueFamilies {
@@ -26,32 +27,59 @@ class VulkanInstance;
 class Device
 {
 private:
+	static vk::PhysicalDevice fetchPhysicalDeviceAndSetFamilies(const VulkanInstance& instance);
 
-	const std::vector<const char*> m_deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	static QueueFamilies fetchQueueFamilies(const vk::PhysicalDevice& device, const VulkanInstance &instance);
+
+    static bool confirmSwapChainSupport(const vk::PhysicalDevice &device, const VulkanInstance& instance);
+
+	static bool confirmDeviceExtensionSupport(const vk::PhysicalDevice& device);
+	
+	vk::Device fetchDevice() const;
 
 
-    bool confirmSwapChainSupport(VkPhysicalDevice device);
 
-	bool confirmDeviceExtensionSupport(VkPhysicalDevice device);
 
-	void setupQueueFamilies(VkPhysicalDevice device);
 public:
+	static SwapChainSupportDetails querySwapChainSupport(const vk::PhysicalDevice &device, const VulkanInstance& instance);
+
 	VulkanInstance& m_instance;
-	VkPhysicalDevice m_physicalDevice;
-	VkDevice m_device;
+	vk::PhysicalDevice m_physicalDevice;
+	SwapChainSupportDetails m_swapChainSupportDetails;
 
 	QueueFamilies m_queueFamilies;
-	VkQueue m_graphicsQueue;
-	VkQueue m_presentQueue;
-	VkQueue m_computeQueue;
+
+	vk::Device m_device;
+
+	vk::Queue m_graphicsQueue;
+	vk::Queue m_presentQueue;
+	vk::Queue m_computeQueue;
+
+
+	vk::CommandPool m_primaryCommandPool;
+	vk::CommandBuffer m_primaryCommandBuffer;
 
 	SwapChain* m_swapChain;
 
 	Device(VulkanInstance &instance);
 
-	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
 	RenderPipeline createRenderPipeline(const char* vertPath, const char* fragPath);
+
+	vk::Buffer createBuffer(uint32_t size, const vk::Flags<vk::BufferUsageFlagBits> usage) const;
+
+	vk::MemoryRequirements getBufferMemoryRequirements(const vk::Buffer &buffer) const;
+
+	vk::PhysicalDeviceMemoryProperties getMemoryProperties() const;
+
+	vk::DeviceMemory allocateMemory(const vk::MemoryAllocateInfo &info) const;
+
+	void * mapMemory(const vk::DeviceMemory &memory, const vk::DeviceSize offset, const vk::DeviceSize size) const;
+	void unMapMemory(const vk::DeviceMemory memory) const;
+
+	void bindBufferMemory(const vk::Buffer & buffer, const vk::DeviceMemory &memory, const vk::DeviceSize offset) const;
+
+	void updateDescriptorSets(const std::vector<vk::WriteDescriptorSet> &sets) const;
 
 	~Device();
 

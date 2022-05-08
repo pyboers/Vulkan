@@ -21,3 +21,13 @@ static std::vector<char> readFile(const std::string& fileName) {
 
     return buffer;
 }
+
+static void vkCheck(VkResult result) {
+    if (result != VK_SUCCESS) {
+        throw std::exception("Vulkan call failed.");
+    }
+}
+
+static double randNorm() {
+    return ((double)rand() / (RAND_MAX));
+}

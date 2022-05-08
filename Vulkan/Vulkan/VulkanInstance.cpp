@@ -4,17 +4,13 @@
 
 void VulkanInstance::validateValidationLayerSupport(std::vector<const char*> validationLayers) const
 {
-	uint32_t layercount;
-	vkEnumerateInstanceLayerProperties(&layercount, nullptr);
-
-	VkLayerProperties* layers = new VkLayerProperties[layercount];
-	vkEnumerateInstanceLayerProperties(&layercount, layers);
+	std::vector<vk::LayerProperties> layerProperties = vk::enumerateInstanceLayerProperties();
 
 	bool layersFound = true;
 	for (const char* requested : validationLayers) {
 		bool available = false;
-		for (uint32_t i = 0; i < layercount; i++) {
-			if (strcmp(requested, layers[i].layerName) == 0) {
+		for (auto &layer : layerProperties) {
+			if (strcmp(requested, layer.layerName) == 0) {
 				available = true;
 				break;
 			}
@@ -27,57 +23,43 @@ void VulkanInstance::validateValidationLayerSupport(std::vector<const char*> val
 	}
 }
 
-VkSurfaceKHR VulkanInstance::createSurface()
+vk::SurfaceKHR VulkanInstance::createSurface()
 {
 	VkSurfaceKHR surface;
 	if (glfwCreateWindowSurface(m_instance, m_window.m_window, nullptr, &surface) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create window surface");
 	}
-	return surface;
+	return vk::SurfaceKHR(surface);
 }
 
-VkInstance VulkanInstance::createInstance(const char* appName, uint32_t majorVersion, uint32_t minorVersion, uint32_t patchVersion, std::vector<const char*> validationLayers)
+vk::Instance VulkanInstance::createInstance(const char* appName, uint32_t majorVersion, uint32_t minorVersion, uint32_t patchVersion, std::vector<const char*> validationLayers)
 {
-	VkInstance instance;
-	VkApplicationInfo appInfo{};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = appName;
-	appInfo.applicationVersion = VK_MAKE_VERSION(majorVersion, minorVersion, patchVersion);
-	appInfo.pEngineName = "Vulkan Engine";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
+	vk::ApplicationInfo appInfo(appName, 1, "Vlkan Engine", 1, VK_API_VERSION_1_0);
 
-	VkInstanceCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pApplicationInfo = &appInfo;
+#ifdef NDEBUG
+	std::vector<char*> layerNames;
+#else
+	validateValidationLayerSupport(validationLayers);
+	std::vector<const char*> layerNames = validationLayers;
+#endif
 
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
 
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-	createInfo.enabledExtensionCount = glfwExtensionCount;
-	createInfo.ppEnabledExtensionNames = glfwExtensions;
+	std::vector<const char*> extensions;
+	extensions.insert(extensions.end(), glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-#ifdef NDEBUG
-	createInfo.enabledLayerCount = 0;
-#else
-	validateValidationLayerSupport(validationLayers);
-	createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-	createInfo.ppEnabledLayerNames = validationLayers.data();
-#endif
+	vk::InstanceCreateInfo createInfo({}, &appInfo, layerNames, extensions);
 
-	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create Vulkan instance!");
-	}
 
-	uint32_t extensionCount = 0;
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-	VkExtensionProperties* extensions = new VkExtensionProperties[extensionCount];
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions);
+	vk::Instance instance = vk::createInstance(createInfo);
 
+	std::vector<vk::ExtensionProperties> availableExtensions = vk::enumerateInstanceExtensionProperties();
+	
 	std::cout << "Extensions available: " << std::endl;
-	for (uint32_t i = 0; i < extensionCount; i++) {
-		std::cout << '\t' << extensions[i].extensionName << std::endl;
+	for (auto &extension : availableExtensions) {
+		std::cout << '\t' << extension.extensionName << std::endl;
 	}
 
 	return instance;
