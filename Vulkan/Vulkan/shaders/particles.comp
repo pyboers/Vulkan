@@ -13,19 +13,20 @@ void main()
 	vec2 current_pos = positions.pos[gl_GlobalInvocationID.x];
     vec2 velocity = velocities.vel[gl_GlobalInvocationID.x];
 	
-	for(int i = 0; i < 20000; i++){
-		if(gl_GlobalInvocationID.x != i){
-			vec2 mass = positions.pos[i];
+	for(int i = 0; i < 30000; i++){
+		vec2 mass = positions.pos[i];
+	
+		vec2 dir = mass - current_pos;
 		
-			vec2 dir = mass - current_pos;
-			
-			velocity = velocity + ((normalize(dir) / max(0.5, (length(dir) * length(dir)))) * 0.0000001);
-		}
+		float l = max(0.05, length(dir)); //Both dampens, and prevents /0
+		vec2 n = dir/l;
+		
+		velocity = velocity + float(gl_GlobalInvocationID.x != i) * ((n / (l*l)) * 0.0000001);
 	}
 	
 	velocities.vel[gl_GlobalInvocationID.x] = velocity;
 	
-    current_pos += velocity * 0.05;
+    current_pos += velocity * 0.005;
 	
     positions.pos[gl_GlobalInvocationID.x] = current_pos;
 }

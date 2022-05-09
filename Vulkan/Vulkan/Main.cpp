@@ -81,7 +81,7 @@ int main()
 
     RenderPipeline pipeline = vkInstance.m_device->createRenderPipeline("shaders/vert.spv", "shaders/frag.spv");
     
-    const uint32_t elementCount = 20000;
+    const uint32_t elementCount = 30000;
     const uint32_t size = elementCount * sizeof(glm::vec2); //It's in the name 
     vk::Buffer positions = vkInstance.m_device->createBuffer(size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer);
     vk::Buffer velocities = vkInstance.m_device->createBuffer(size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer);
@@ -116,7 +116,7 @@ int main()
 
     glm::vec2* positionBufferData = static_cast<glm::vec2*>(vkInstance.m_device->mapMemory(positionMemory, 0, positionRequirements.size));
     for (int i = 0; i < elementCount; i++) {
-        positionBufferData[i] = glm::vec2(-1 + (randNorm() * 2), -1 + (randNorm() * 2));
+        positionBufferData[i] = glm::vec2(-1 + (randNorm() * 2), -1 + (randNorm() * 2)) * 0.5f;
     }
     vkInstance.m_device->unMapMemory(positionMemory);
 
