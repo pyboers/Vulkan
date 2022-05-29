@@ -65,6 +65,31 @@ void Device::updateDescriptorSets(const std::vector<vk::WriteDescriptorSet> &set
     m_device.updateDescriptorSets(sets, nullptr);
 }
 
+vk::CommandBuffer &Device::beginSingleUseCommands() const
+{
+
+    vk::CommandBuffer commandBuffer(m_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo(m_oneTimeCommandPool, vk::CommandBufferLevel::ePrimary, 1)).front());
+
+    vk::CommandBufferBeginInfo beginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+    commandBuffer.begin(beginInfo);
+
+    return commandBuffer;
+}
+
+void Device::endSingleUseCommands(vk::CommandBuffer& commandBuffer) const
+{
+    commandBuffer.end();
+
+    vk::SubmitInfo info({}, {}, commandBuffer, {});
+
+    m_graphicsQueue.submit(info);
+
+    m_graphicsQueue.waitIdle();
+
+    m_device.freeCommandBuffers(m_oneTimeCommandPool, commandBuffer);
+}
+
 bool Device::confirmSwapChainSupport(const vk::PhysicalDevice & device, const VulkanInstance& instance)
 {
     SwapChainSupportDetails details = querySwapChainSupport(device, instance);
@@ -181,6 +206,7 @@ Device::Device(VulkanInstance& instance)
     m_presentQueue(m_device.getQueue(m_queueFamilies.presentFamily.value(), 0)),
     m_computeQueue(m_device.getQueue(m_queueFamilies.computeFamily.value(), 0)),
     m_swapChain(new SwapChain(*this)),
+    m_oneTimeCommandPool(m_device.createCommandPool(vk::CommandPoolCreateInfo({ vk::CommandPoolCreateFlagBits::eResetCommandBuffer }, m_queueFamilies.graphicsFamily.value()))),
     m_primaryCommandPool(m_device.createCommandPool(vk::CommandPoolCreateInfo({ vk::CommandPoolCreateFlagBits::eResetCommandBuffer }, m_queueFamilies.graphicsFamily.value()))),
     m_primaryCommandBuffer(m_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo(m_primaryCommandPool, vk::CommandBufferLevel::ePrimary, 1)).front())
 

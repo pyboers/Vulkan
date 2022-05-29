@@ -31,3 +31,7 @@ static void vkCheck(VkResult result) {
 static double randNorm() {
     return ((double)rand() / (RAND_MAX));
 }
+
+static double randNorm(const float min, const float max) {
+    return min + (((double)rand() / (RAND_MAX)) * (max - min));
+}

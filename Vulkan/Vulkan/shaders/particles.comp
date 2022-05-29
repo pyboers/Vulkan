@@ -1,4 +1,13 @@
 #version 450
+#define TYPECOUNT 1000
+#define FRICTION 0.75
+#define RADIUS 0.0015
+
+struct ParticleBehaviour{
+	vec2 behaviours[20];
+};
+
+
 layout(binding=0) buffer Positions{
 	vec2 pos[];
 } positions;
@@ -7,26 +16,50 @@ layout(binding=1) buffer Velocities{
 	vec2 vel[];
 } velocities;
 
+layout(binding=2, std430) readonly buffer Behaviours{
+	ParticleBehaviour b[];
+} behaviours;
+
 layout(local_size_x = 64) in;
 void main()
 {
 	vec2 current_pos = positions.pos[gl_GlobalInvocationID.x];
-    vec2 velocity = velocities.vel[gl_GlobalInvocationID.x];
+    vec2 velocity = velocities.vel[gl_GlobalInvocationID.x] * FRICTION;
+	int currType = int(gl_GlobalInvocationID.x / TYPECOUNT);
 	
-	for(int i = 0; i < 30000; i++){
+	for(int i = 0; i < 20000; i++){
 		vec2 mass = positions.pos[i];
+		vec2 massV = velocities.vel[i];
+		
+		int massType = int(i / TYPECOUNT);
+		
+		vec2 interaction = behaviours.b[currType].behaviours[massType];
 	
 		vec2 dir = mass - current_pos;
 		
-		float l = max(0.05, length(dir)); //Both dampens, and prevents /0
+		float l = max(0.0001, length(dir)); //prevents /0
 		vec2 n = dir/l;
+	
 		
-		velocity = velocity + float(gl_GlobalInvocationID.x != i) * ((n / (l*l)) * 0.0000001);
+		velocity = velocity + float(gl_GlobalInvocationID.x != i) * ((n * interaction.y) * step(l, interaction.x)) * 0.1;
+		
+		float relV = max(0.0, dot(velocity - massV, n));
+		velocity = velocity + float(gl_GlobalInvocationID.x != i) * (n * -relV) * step(l, RADIUS);
+		
 	}
+
+	
+	vec2 xDir = vec2(1.0, 0.0);
+	velocity = velocity + (step(0.95, -current_pos.x) * xDir * -min(0.0, dot(xDir, velocity))); //Left line
+	velocity = velocity + (step(0.95, current_pos.x) * xDir * -max(0.0, dot(xDir, velocity))); //Right line
+	
+	vec2 yDir = vec2(0.0, 1.0);
+	velocity = velocity + (step(0.53, -current_pos.y) * yDir * -min(0.0, dot(yDir, velocity))); //Bottom line
+	velocity = velocity + (step(0.53, current_pos.y) * yDir * -max(0.0, dot(yDir, velocity))); //Top line
 	
 	velocities.vel[gl_GlobalInvocationID.x] = velocity;
 	
-    current_pos += velocity * 0.005;
+    current_pos += velocity * 0.001;
 	
     positions.pos[gl_GlobalInvocationID.x] = current_pos;
 }

@@ -55,7 +55,7 @@ public:
 	vk::Queue m_presentQueue;
 	vk::Queue m_computeQueue;
 
-
+	vk::CommandPool m_oneTimeCommandPool;
 	vk::CommandPool m_primaryCommandPool;
 	vk::CommandBuffer m_primaryCommandBuffer;
 
@@ -80,6 +80,10 @@ public:
 	void bindBufferMemory(const vk::Buffer & buffer, const vk::DeviceMemory &memory, const vk::DeviceSize offset) const;
 
 	void updateDescriptorSets(const std::vector<vk::WriteDescriptorSet> &sets) const;
+
+	vk::CommandBuffer &beginSingleUseCommands() const;
+
+	void endSingleUseCommands(vk::CommandBuffer &commandBuffer) const;
 
 	~Device();
 

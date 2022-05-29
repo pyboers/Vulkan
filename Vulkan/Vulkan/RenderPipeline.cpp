@@ -46,9 +46,15 @@ vk::Pipeline RenderPipeline::createPipeline(const vk::Device& device, const char
 	vk::PipelineShaderStageCreateInfo vertShaderStageInfo({}, vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main");
 	vk::PipelineShaderStageCreateInfo fragShaderStageInfo({}, vk::ShaderStageFlagBits::eFragment, fragShaderModule, "main");
 
-	vk::VertexInputBindingDescription bindingDescription(0, sizeof(glm::vec2), vk::VertexInputRate::eVertex);
-	vk::VertexInputAttributeDescription attributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0);
-	vk::PipelineVertexInputStateCreateInfo vertexInputInfo({}, bindingDescription, attributeDescription);
+	std::vector<vk::VertexInputBindingDescription> bindingDescriptions = {
+		vk::VertexInputBindingDescription(0, sizeof(glm::vec2), vk::VertexInputRate::eVertex),
+		vk::VertexInputBindingDescription(1, sizeof(glm::vec4), vk::VertexInputRate::eVertex)
+	};
+	std::vector<vk::VertexInputAttributeDescription> attributeDescriptions = {
+		vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, 0),
+		vk::VertexInputAttributeDescription(1, 1, vk::Format::eR32G32B32A32Sfloat, 0)
+	};
+	vk::PipelineVertexInputStateCreateInfo vertexInputInfo({}, bindingDescriptions, attributeDescriptions);
 
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly({}, vk::PrimitiveTopology::ePointList, VK_FALSE);
 
