@@ -65,7 +65,7 @@ void Device::updateDescriptorSets(const std::vector<vk::WriteDescriptorSet> &set
     m_device.updateDescriptorSets(sets, nullptr);
 }
 
-vk::CommandBuffer &Device::beginSingleUseCommands() const
+vk::CommandBuffer Device::beginSingleUseCommands() const
 {
 
     vk::CommandBuffer commandBuffer(m_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo(m_oneTimeCommandPool, vk::CommandBufferLevel::ePrimary, 1)).front());
@@ -163,6 +163,10 @@ vk::PhysicalDevice Device::fetchPhysicalDeviceAndSetFamilies(const VulkanInstanc
             std::cout << '\t' << deviceProperties.deviceName << std::endl;
             break;
         }
+        else if (deviceProperties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu) {
+            selectedDevice = &device;
+            std::cout << "\t" << deviceProperties.deviceName << std::endl;
+        }
 
     }
 
@@ -171,7 +175,7 @@ vk::PhysicalDevice Device::fetchPhysicalDeviceAndSetFamilies(const VulkanInstanc
     }
 
     if (!confirmDeviceExtensionSupport(*selectedDevice) || !confirmSwapChainSupport(*selectedDevice, instance)) {
-        throw std::runtime_error("Didn't find available discrete gpu");
+        throw std::runtime_error("Didn't find available gpu");
     }
 
     fetchQueueFamilies(*selectedDevice, instance);

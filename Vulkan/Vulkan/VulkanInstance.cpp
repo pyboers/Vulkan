@@ -36,12 +36,12 @@ vk::Instance VulkanInstance::createInstance(const char* appName, uint32_t majorV
 {
 	vk::ApplicationInfo appInfo(appName, 1, "Vlkan Engine", 1, VK_API_VERSION_1_0);
 
-#ifdef NDEBUG
+//#ifdef NDEBUG
 	std::vector<char*> layerNames;
-#else
-	validateValidationLayerSupport(validationLayers);
-	std::vector<const char*> layerNames = validationLayers;
-#endif
+//#else
+//	validateValidationLayerSupport(validationLayers);
+//	std::vector<const char*> layerNames = validationLayers;
+//#endif
 
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;

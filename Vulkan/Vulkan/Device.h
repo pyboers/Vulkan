@@ -81,7 +81,7 @@ public:
 
 	void updateDescriptorSets(const std::vector<vk::WriteDescriptorSet> &sets) const;
 
-	vk::CommandBuffer &beginSingleUseCommands() const;
+	vk::CommandBuffer beginSingleUseCommands() const;
 
 	void endSingleUseCommands(vk::CommandBuffer &commandBuffer) const;
 
