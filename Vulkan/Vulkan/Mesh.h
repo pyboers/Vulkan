@@ -9,7 +9,8 @@
 
 class Mesh {
 private: 
-	const Device &m_device;
+	bool m_moved;
+	Device *m_device;
 	void setupBuffers();
 	void setupMemory();
 public:
@@ -23,14 +24,15 @@ public:
 	vk::DeviceMemory m_indexBufferMemory;
 
 	Mesh(Mesh &mesh) = delete;
-	Mesh(Mesh&& mesh) = delete;
-	Mesh(const std::vector<glm::vec3> vertices, const std::vector<uint32_t> indices, const Device &device);
+	Mesh& operator=(Mesh other) = delete;
 
+	Mesh(const std::vector<glm::vec3> vertices, const std::vector<uint32_t> indices, const Device *device);
+	Mesh(Mesh&& mesh);
 
 	void draw(vk::CommandBuffer commandBuffer) const;
 
 	~Mesh();
 
-	static Mesh loadModel(const char *filename, const Device &device);
+	static Mesh loadModel(const char *filename, const Device *device);
 };
 #endif

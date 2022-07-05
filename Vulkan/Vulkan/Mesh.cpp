@@ -4,6 +4,8 @@
 
 void Mesh::draw(vk::CommandBuffer commandBuffer) const
 {
+	if (m_moved)
+		throw "Mesh has been moved. This mesh is now invalid.";
 	commandBuffer.bindVertexBuffers(0, { m_buffer }, { 0 });
 	commandBuffer.bindIndexBuffer(m_indexBuffer, { 0 }, vk::IndexType::eUint32);
 
@@ -12,15 +14,17 @@ void Mesh::draw(vk::CommandBuffer commandBuffer) const
 }
 
 Mesh::~Mesh() {
-	m_device.m_device.destroyBuffer(m_buffer);
-	m_device.m_device.freeMemory(m_bufferMemory);
+	if (m_moved)
+		return; //No need to delete. Burden is on the reciever of the move now.
+	m_device->m_device.destroyBuffer(m_buffer);
+	m_device->m_device.freeMemory(m_bufferMemory);
 
-	m_device.m_device.destroyBuffer(m_indexBuffer);
-	m_device.m_device.freeMemory(m_indexBufferMemory);
+	m_device->m_device.destroyBuffer(m_indexBuffer);
+	m_device->m_device.freeMemory(m_indexBufferMemory);
 }
 
 
-Mesh Mesh::loadModel(const char* filename, const Device &device) {
+Mesh Mesh::loadModel(const char* filename, const Device *device) {
 	FILE* f = fopen(filename, "r"); // open file
 	if (!f) {
 		throw "Could not open file!";
@@ -86,24 +90,26 @@ Mesh Mesh::loadModel(const char* filename, const Device &device) {
 
 void Mesh::setupBuffers()
 {
+	throw "Mesh has been moved. This mesh is now invalid.";
 	vk::BufferCreateInfo bufferInfo({}, m_vertices.size() * sizeof(glm::vec3), vk::BufferUsageFlagBits::eVertexBuffer
 		, vk::SharingMode::eExclusive);
 
-	m_buffer = m_device.m_device.createBuffer(bufferInfo, nullptr);
+	m_buffer = m_device->m_device.createBuffer(bufferInfo, nullptr);
 
 	vk::BufferCreateInfo indexBufferInfo({}, m_indices.size() * sizeof(uint32_t), vk::BufferUsageFlagBits::eIndexBuffer
 		, vk::SharingMode::eExclusive);
 
-	m_indexBuffer = m_device.m_device.createBuffer(indexBufferInfo, nullptr);
+	m_indexBuffer = m_device->m_device.createBuffer(indexBufferInfo, nullptr);
 
 }
 
 void Mesh::setupMemory()
 {
-	vk::MemoryRequirements requirements = m_device.getBufferMemoryRequirements(m_buffer);
-	vk::MemoryRequirements indexRequirements = m_device.getBufferMemoryRequirements(m_indexBuffer);
+	throw "Mesh has been moved. This mesh is now invalid.";
+	vk::MemoryRequirements requirements = m_device->getBufferMemoryRequirements(m_buffer);
+	vk::MemoryRequirements indexRequirements = m_device->getBufferMemoryRequirements(m_indexBuffer);
 
-	vk::PhysicalDeviceMemoryProperties memProps = m_device.getMemoryProperties();
+	vk::PhysicalDeviceMemoryProperties memProps = m_device->getMemoryProperties();
 
 	uint32_t memTypeI = 1;
 	vk::DeviceSize memHeapSize = 0;
@@ -122,23 +128,37 @@ void Mesh::setupMemory()
 
 	vk::MemoryAllocateInfo memAllocInfo(requirements.size, memTypeI);
 	vk::MemoryAllocateInfo indexMemAllocInfo(indexRequirements.size, memTypeI);
-	m_bufferMemory = m_device.allocateMemory(memAllocInfo);
-	m_bufferMemory = m_device.allocateMemory(indexMemAllocInfo);
+	m_bufferMemory = m_device->allocateMemory(memAllocInfo);
+	m_bufferMemory = m_device->allocateMemory(indexMemAllocInfo);
 
-	glm::vec3* bufferData = static_cast<glm::vec3*>(m_device.mapMemory(m_bufferMemory, 0, requirements.size));
-	uint32_t* indexBufferData = static_cast<uint32_t*>(m_device.mapMemory(m_indexBufferMemory, 0, indexRequirements.size));
+	glm::vec3* bufferData = static_cast<glm::vec3*>(m_device->mapMemory(m_bufferMemory, 0, requirements.size));
+	uint32_t* indexBufferData = static_cast<uint32_t*>(m_device->mapMemory(m_indexBufferMemory, 0, indexRequirements.size));
 	std::copy(m_vertices.begin(), m_vertices.end(), bufferData);
 	std::copy(m_indices.begin(), m_indices.end(), indexBufferData);
 	
-	m_device.unMapMemory(m_bufferMemory);
-	m_device.unMapMemory(m_indexBufferMemory);
+	m_device->unMapMemory(m_bufferMemory);
+	m_device->unMapMemory(m_indexBufferMemory);
 
 	
 
-	m_device.bindBufferMemory(m_buffer, m_bufferMemory, 0);
-	m_device.bindBufferMemory(m_indexBuffer, m_indexBufferMemory, 0);
+	m_device->bindBufferMemory(m_buffer, m_bufferMemory, 0);
+	m_device->bindBufferMemory(m_indexBuffer, m_indexBufferMemory, 0);
 }
 
-Mesh::Mesh(std::vector<glm::vec3> vertices, std::vector<uint32_t> indices, const Device &device) : m_vertices(m_vertices), m_indices(indices), m_device(device) {
+Mesh::Mesh(std::vector<glm::vec3> vertices, std::vector<uint32_t> indices, const Device *device) : m_vertices(m_vertices), m_indices(indices), m_device(device) {
+
+}
+
+Mesh::Mesh(Mesh&& mesh)
+{
+	m_vertices = mesh.m_vertices;
+	m_indices = mesh.m_indices;
+	m_buffer = mesh.m_buffer;
+	m_indexBuffer = mesh.m_indexBuffer;
+	m_bufferMemory = mesh.m_bufferMemory;
+	m_indexBufferMemory = mesh.m_indexBufferMemory;
+	m_device = mesh.m_device;
+
+	mesh.m_moved = true;
 
 }
